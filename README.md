@@ -1,6 +1,6 @@
-# Square Enix Backend API
+# Subspace Backend API
 
-A RESTful API backend built with Go for the Square Enix iOS application.
+A RESTful API backend built with Go for the Subspace iOS application (LCARS-themed Star Trek interface).
 
 ## Features
 
