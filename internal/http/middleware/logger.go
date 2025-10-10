@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/cliftonbaggerman/subspace-backend/internal/logger"
 )
 
 // responseWriter wraps http.ResponseWriter to capture status code
@@ -44,13 +45,20 @@ func Logger(next http.Handler) http.Handler {
 
 		// Log the request
 		duration := time.Since(start)
-		log.Printf(
-			"%s %s %d %s %dB",
-			r.Method,
-			r.RequestURI,
-			wrapped.statusCode,
-			duration,
-			wrapped.written,
+		log := logger.Get()
+
+		// Get request ID from context
+		requestID := GetRequestID(r.Context())
+
+		log.Info("HTTP request",
+			"request_id", requestID,
+			"method", r.Method,
+			"path", r.RequestURI,
+			"status", wrapped.statusCode,
+			"duration_ms", duration.Milliseconds(),
+			"bytes", wrapped.written,
+			"remote_addr", r.RemoteAddr,
+			"user_agent", r.UserAgent(),
 		)
 	})
 }

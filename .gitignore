@@ -31,6 +31,7 @@ vendor/
 # Build output
 bin/
 dist/
+server
 
 # Process documentation
 CLEANUP_*.md

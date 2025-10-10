@@ -1,10 +1,33 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: subspace-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: subspace
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - subspace-network
+
+  # API Server
   api:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: subspace-api
     ports:
       - "8080:8080"
     environment:
@@ -12,9 +35,23 @@ services:
       - HOST=0.0.0.0
       - ENVIRONMENT=development
       - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=subspace
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_SSL_MODE=disable
+      - JWT_SECRET=dev-secret-key-change-in-production
+      - JWT_EXPIRATION=24h
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - subspace-network
+
+volumes:
+  postgres_data:
 
 networks:
   subspace-network:

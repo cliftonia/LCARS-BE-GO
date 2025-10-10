@@ -29,6 +29,7 @@ type Message struct {
 type MessageRepository interface {
 	GetByID(id string) (*Message, error)
 	GetByUserID(userID string, limit, offset int) ([]*Message, error)
+	CountByUserID(userID string) (int, error)
 	GetUnreadCount(userID string) (int, error)
 	Create(message *Message) error
 	Update(message *Message) error

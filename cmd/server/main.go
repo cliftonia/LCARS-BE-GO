@@ -1,42 +1,83 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/cliftonbaggerman/subspace-backend/internal/auth"
 	"github.com/cliftonbaggerman/subspace-backend/internal/config"
+	"github.com/cliftonbaggerman/subspace-backend/internal/constants"
+	"github.com/cliftonbaggerman/subspace-backend/internal/database"
 	httpserver "github.com/cliftonbaggerman/subspace-backend/internal/http"
 	"github.com/cliftonbaggerman/subspace-backend/internal/http/handlers"
-	"github.com/cliftonbaggerman/subspace-backend/internal/repository/memory"
+	"github.com/cliftonbaggerman/subspace-backend/internal/logger"
+	"github.com/cliftonbaggerman/subspace-backend/internal/repository/postgres"
 )
 
 func main() {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		panic(fmt.Sprintf("Failed to load configuration: %v", err))
 	}
 
-	log.Printf("Starting Square Enix Backend API v%s", cfg.API.Version)
-	log.Printf("Environment: %s", cfg.Server.Environment)
+	// Initialize logger
+	log := logger.New(cfg.Server.Environment)
 
-	// Initialize repositories (in-memory for now)
-	userRepo := memory.NewUserRepository()
-	messageRepo := memory.NewMessageRepository()
+	log.Info("Starting Subspace Backend API",
+		"version", cfg.API.Version,
+		"environment", cfg.Server.Environment,
+	)
+
+	// Initialize database connection
+	dbConfig := database.Config{
+		Host:            cfg.Database.Host,
+		Port:            cfg.Database.Port,
+		User:            cfg.Database.User,
+		Password:        cfg.Database.Password,
+		DBName:          cfg.Database.Name,
+		SSLMode:         cfg.Database.SSLMode,
+		MaxOpenConns:    25,
+		MaxIdleConns:    5,
+		ConnMaxLifetime: 5 * time.Minute,
+		ConnMaxIdleTime: 5 * time.Minute,
+	}
+
+	db, err := database.NewPostgresDB(dbConfig)
+	if err != nil {
+		log.Error("Failed to connect to database", "error", err)
+		panic(fmt.Sprintf("Failed to connect to database: %v", err))
+	}
+	defer database.Close(db)
+
+	log.Info("Database connection established")
+
+	// Initialize repositories with PostgreSQL
+	userRepo := postgres.NewUserRepository(db)
+	messageRepo := postgres.NewMessageRepository(db)
+
+	// Initialize JWT manager
+	tokenDuration, _ := time.ParseDuration(cfg.Security.JWTExpiration)
+	jwtManager := auth.NewJWTManager(cfg.Security.JWTSecret, tokenDuration)
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userRepo)
 	messageHandler := handlers.NewMessageHandler(messageRepo)
+	authHandler := handlers.NewAuthHandler(userRepo, jwtManager)
 
 	// Create router
 	router := httpserver.NewRouter(httpserver.RouterConfig{
 		UserHandler:    userHandler,
 		MessageHandler: messageHandler,
+		AuthHandler:    authHandler,
+		UserRepo:       userRepo,
+		MessageRepo:    messageRepo,
+		JWTManager:     jwtManager,
 		CORSOrigins:    cfg.CORS.AllowedOrigins,
 	})
 
@@ -45,16 +86,17 @@ func main() {
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  constants.ServerReadTimeout,
+		WriteTimeout: constants.ServerWriteTimeout,
+		IdleTimeout:  constants.ServerIdleTimeout,
 	}
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Server listening on %s", addr)
+		log.Info("Server listening", "address", addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed to start: %v", err)
+			log.Error("Server failed to start", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -63,11 +105,16 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Server shutting down...")
+	log.Info("Server shutting down...")
 
 	// Graceful shutdown with timeout
-	// Note: In a real application, you'd want to use context.WithTimeout here
-	// but keeping it simple for now
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ShutdownTimeout)
+	defer cancel()
 
-	log.Println("Server stopped")
+	if err := server.Shutdown(ctx); err != nil {
+		log.Error("Server forced to shutdown", "error", err)
+		os.Exit(1)
+	}
+
+	log.Info("Server stopped gracefully")
 }

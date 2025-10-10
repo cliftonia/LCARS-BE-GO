@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -26,7 +25,7 @@ func NewMessageRepository() *MessageRepository {
 		{
 			ID:        "msg-1",
 			UserID:    "user-1",
-			Content:   "Welcome to Square Enix!",
+			Content:   "Welcome to Subspace!",
 			Kind:      domain.MessageKindSuccess,
 			IsRead:    false,
 			CreatedAt: time.Now().Add(-2 * time.Hour),
@@ -75,7 +74,7 @@ func (r *MessageRepository) GetByID(id string) (*domain.Message, error) {
 
 	message, exists := r.messages[id]
 	if !exists {
-		return nil, errors.New("message not found")
+		return nil, domain.ErrMessageNotFound
 	}
 
 	return message, nil
@@ -105,6 +104,21 @@ func (r *MessageRepository) GetByUserID(userID string, limit, offset int) ([]*do
 	}
 
 	return userMessages[start:end], nil
+}
+
+// CountByUserID returns the total count of messages for a user
+func (r *MessageRepository) CountByUserID(userID string) (int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	count := 0
+	for _, message := range r.messages {
+		if message.UserID == userID {
+			count++
+		}
+	}
+
+	return count, nil
 }
 
 // GetUnreadCount returns the count of unread messages for a user
@@ -145,7 +159,7 @@ func (r *MessageRepository) Update(message *domain.Message) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.messages[message.ID]; !exists {
-		return errors.New("message not found")
+		return domain.ErrMessageNotFound
 	}
 
 	message.UpdatedAt = time.Now()
@@ -160,7 +174,7 @@ func (r *MessageRepository) MarkAsRead(id string) error {
 
 	message, exists := r.messages[id]
 	if !exists {
-		return errors.New("message not found")
+		return domain.ErrMessageNotFound
 	}
 
 	message.IsRead = true
@@ -174,7 +188,7 @@ func (r *MessageRepository) Delete(id string) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.messages[id]; !exists {
-		return errors.New("message not found")
+		return domain.ErrMessageNotFound
 	}
 
 	delete(r.messages, id)

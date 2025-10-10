@@ -1,8 +1,12 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
+	"time"
 
+	"github.com/cliftonbaggerman/subspace-backend/internal/auth"
+	"github.com/cliftonbaggerman/subspace-backend/internal/domain"
 	"github.com/cliftonbaggerman/subspace-backend/internal/http/handlers"
 	"github.com/cliftonbaggerman/subspace-backend/internal/http/middleware"
 	"github.com/gorilla/mux"
@@ -13,6 +17,10 @@ import (
 type RouterConfig struct {
 	UserHandler    *handlers.UserHandler
 	MessageHandler *handlers.MessageHandler
+	AuthHandler    *handlers.AuthHandler
+	UserRepo       domain.UserRepository
+	MessageRepo    domain.MessageRepository
+	JWTManager     *auth.JWTManager
 	CORSOrigins    []string
 }
 
@@ -21,31 +29,46 @@ func NewRouter(config RouterConfig) http.Handler {
 	r := mux.NewRouter()
 
 	// Apply global middleware
+	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recovery)
+	r.Use(middleware.RateLimit(100, 10)) // 100 requests/minute, burst of 10
 
 	// API version prefix
 	api := r.PathPrefix("/api/v1").Subrouter()
 
 	// Health check endpoint
-	r.HandleFunc("/health", healthCheck).Methods(http.MethodGet)
+	r.HandleFunc("/health", healthCheckHandler(config.UserRepo, config.MessageRepo)).Methods(http.MethodGet)
 
-	// User routes
-	api.HandleFunc("/users", config.UserHandler.ListUsers).Methods(http.MethodGet)
-	api.HandleFunc("/users", config.UserHandler.CreateUser).Methods(http.MethodPost)
-	api.HandleFunc("/users/{id}", config.UserHandler.GetUser).Methods(http.MethodGet)
-	api.HandleFunc("/users/{id}", config.UserHandler.UpdateUser).Methods(http.MethodPut)
-	api.HandleFunc("/users/{id}", config.UserHandler.DeleteUser).Methods(http.MethodDelete)
+	// Auth routes (public)
+	api.HandleFunc("/auth/register", config.AuthHandler.Register).Methods(http.MethodPost)
+	api.HandleFunc("/auth/login", config.AuthHandler.Login).Methods(http.MethodPost)
 
-	// Message routes
-	api.HandleFunc("/messages", config.MessageHandler.CreateMessage).Methods(http.MethodPost)
-	api.HandleFunc("/messages/{id}", config.MessageHandler.GetMessage).Methods(http.MethodGet)
-	api.HandleFunc("/messages/{id}", config.MessageHandler.DeleteMessage).Methods(http.MethodDelete)
-	api.HandleFunc("/messages/{id}/read", config.MessageHandler.MarkAsRead).Methods(http.MethodPatch)
+	// Protected auth routes
+	authAPI := api.PathPrefix("/auth").Subrouter()
+	authAPI.Use(middleware.Auth(config.JWTManager))
+	authAPI.HandleFunc("/me", config.AuthHandler.Me).Methods(http.MethodGet)
 
-	// User-specific message routes
-	api.HandleFunc("/users/{userId}/messages", config.MessageHandler.GetUserMessages).Methods(http.MethodGet)
-	api.HandleFunc("/users/{userId}/messages/unread-count", config.MessageHandler.GetUnreadCount).Methods(http.MethodGet)
+	// User routes (protected)
+	usersAPI := api.PathPrefix("/users").Subrouter()
+	usersAPI.Use(middleware.Auth(config.JWTManager))
+	usersAPI.HandleFunc("", config.UserHandler.ListUsers).Methods(http.MethodGet)
+	usersAPI.HandleFunc("", config.UserHandler.CreateUser).Methods(http.MethodPost)
+	usersAPI.HandleFunc("/{id}", config.UserHandler.GetUser).Methods(http.MethodGet)
+	usersAPI.HandleFunc("/{id}", config.UserHandler.UpdateUser).Methods(http.MethodPut)
+	usersAPI.HandleFunc("/{id}", config.UserHandler.DeleteUser).Methods(http.MethodDelete)
+
+	// Message routes (protected)
+	messagesAPI := api.PathPrefix("/messages").Subrouter()
+	messagesAPI.Use(middleware.Auth(config.JWTManager))
+	messagesAPI.HandleFunc("", config.MessageHandler.CreateMessage).Methods(http.MethodPost)
+	messagesAPI.HandleFunc("/{id}", config.MessageHandler.GetMessage).Methods(http.MethodGet)
+	messagesAPI.HandleFunc("/{id}", config.MessageHandler.DeleteMessage).Methods(http.MethodDelete)
+	messagesAPI.HandleFunc("/{id}/read", config.MessageHandler.MarkAsRead).Methods(http.MethodPatch)
+
+	// User-specific message routes (protected)
+	usersAPI.HandleFunc("/{userId}/messages", config.MessageHandler.GetUserMessages).Methods(http.MethodGet)
+	usersAPI.HandleFunc("/{userId}/messages/unread-count", config.MessageHandler.GetUnreadCount).Methods(http.MethodGet)
 
 	// Configure CORS
 	c := cors.New(cors.Options{
@@ -60,9 +83,52 @@ func NewRouter(config RouterConfig) http.Handler {
 	return c.Handler(r)
 }
 
-// healthCheck returns a simple health status
-func healthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","service":"subspace-backend"}`))
+// HealthStatus represents the health status response
+type HealthStatus struct {
+	Status      string            `json:"status"`
+	Service     string            `json:"service"`
+	Timestamp   time.Time         `json:"timestamp"`
+	Checks      map[string]string `json:"checks"`
+}
+
+// healthCheckHandler returns a health check handler that checks dependencies
+func healthCheckHandler(userRepo domain.UserRepository, messageRepo domain.MessageRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		checks := make(map[string]string)
+		allHealthy := true
+
+		// Check user repository
+		if _, err := userRepo.Count(); err != nil {
+			checks["user_repository"] = "unhealthy: " + err.Error()
+			allHealthy = false
+		} else {
+			checks["user_repository"] = "healthy"
+		}
+
+		// Check message repository
+		if _, err := messageRepo.GetUnreadCount("health-check"); err != nil {
+			checks["message_repository"] = "unhealthy: " + err.Error()
+			allHealthy = false
+		} else {
+			checks["message_repository"] = "healthy"
+		}
+
+		status := "healthy"
+		statusCode := http.StatusOK
+		if !allHealthy {
+			status = "degraded"
+			statusCode = http.StatusServiceUnavailable
+		}
+
+		response := HealthStatus{
+			Status:    status,
+			Service:   "subspace-backend",
+			Timestamp: time.Now(),
+			Checks:    checks,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		json.NewEncoder(w).Encode(response)
+	}
 }

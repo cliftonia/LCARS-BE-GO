@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -63,7 +62,7 @@ func (r *UserRepository) GetByID(id string) (*domain.User, error) {
 
 	user, exists := r.users[id]
 	if !exists {
-		return nil, errors.New("user not found")
+		return nil, domain.ErrUserNotFound
 	}
 
 	return user, nil
@@ -80,7 +79,7 @@ func (r *UserRepository) GetByEmail(email string) (*domain.User, error) {
 		}
 	}
 
-	return nil, errors.New("user not found")
+	return nil, domain.ErrUserNotFound
 }
 
 // List retrieves a list of users with pagination
@@ -107,6 +106,14 @@ func (r *UserRepository) List(limit, offset int) ([]*domain.User, error) {
 	return users[start:end], nil
 }
 
+// Count returns the total number of users
+func (r *UserRepository) Count() (int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return len(r.users), nil
+}
+
 // Create creates a new user
 func (r *UserRepository) Create(user *domain.User) error {
 	r.mu.Lock()
@@ -130,7 +137,7 @@ func (r *UserRepository) Update(user *domain.User) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.users[user.ID]; !exists {
-		return errors.New("user not found")
+		return domain.ErrUserNotFound
 	}
 
 	user.UpdatedAt = time.Now()
@@ -144,7 +151,7 @@ func (r *UserRepository) Delete(id string) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.users[id]; !exists {
-		return errors.New("user not found")
+		return domain.ErrUserNotFound
 	}
 
 	delete(r.users, id)

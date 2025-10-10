@@ -56,14 +56,27 @@ func (h *MessageHandler) GetUserMessages(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	// Validate pagination
+	if err := validatePagination(limit, offset); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	messages, err := h.repo.GetByUserID(userID, limit, offset)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve messages")
 		return
 	}
 
+	total, err := h.repo.CountByUserID(userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve message count")
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"data":   messages,
+		"total":  total,
 		"limit":  limit,
 		"offset": offset,
 	})
@@ -91,6 +104,22 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	// Validate message input
+	if message.UserID == "" {
+		respondWithError(w, http.StatusBadRequest, domain.ErrMessageUserIDEmpty.Error())
+		return
+	}
+
+	if err := validateMessageContent(message.Content); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validateMessageKind(message.Kind); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	if err := h.repo.Create(&message); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create message")

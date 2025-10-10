@@ -53,14 +53,27 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate pagination
+	if err := validatePagination(limit, offset); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	users, err := h.repo.List(limit, offset)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve users")
 		return
 	}
 
+	total, err := h.repo.Count()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve user count")
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"data":   users,
+		"total":  total,
 		"limit":  limit,
 		"offset": offset,
 	})
@@ -74,6 +87,17 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	// Validate user input
+	if err := validateUserName(user.Name); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validateEmail(user.Email); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	if err := h.repo.Create(&user); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create user")
@@ -94,6 +118,17 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	// Validate user input
+	if err := validateUserName(user.Name); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validateEmail(user.Email); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	user.ID = id
 

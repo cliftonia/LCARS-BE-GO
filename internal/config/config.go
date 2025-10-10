@@ -66,7 +66,7 @@ func Load() (*Config, error) {
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnvAsInt("DB_PORT", 5432),
-			Name:     getEnv("DB_NAME", "sqaure_enix"),
+			Name:     getEnv("DB_NAME", "subspace"),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			SSLMode:  getEnv("DB_SSL_MODE", "disable"),
