@@ -44,6 +44,7 @@ func NewRouter(config RouterConfig) http.Handler {
 	// Auth routes (public)
 	api.HandleFunc("/auth/register", config.AuthHandler.Register).Methods(http.MethodPost)
 	api.HandleFunc("/auth/login", config.AuthHandler.Login).Methods(http.MethodPost)
+	api.HandleFunc("/auth/apple", config.AuthHandler.AppleSignIn).Methods(http.MethodPost)
 
 	// Protected auth routes
 	authAPI := api.PathPrefix("/auth").Subrouter()

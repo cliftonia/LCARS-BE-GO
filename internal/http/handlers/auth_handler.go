@@ -14,15 +14,17 @@ import (
 
 // AuthHandler handles authentication-related HTTP requests
 type AuthHandler struct {
-	userRepo   domain.UserRepository
-	jwtManager *auth.JWTManager
+	userRepo      domain.UserRepository
+	jwtManager    *auth.JWTManager
+	appleVerifier *auth.AppleAuthVerifier
 }
 
 // NewAuthHandler creates a new auth handler
 func NewAuthHandler(userRepo domain.UserRepository, jwtManager *auth.JWTManager) *AuthHandler {
 	return &AuthHandler{
-		userRepo:   userRepo,
-		jwtManager: jwtManager,
+		userRepo:      userRepo,
+		jwtManager:    jwtManager,
+		appleVerifier: auth.NewAppleAuthVerifier(),
 	}
 }
 
@@ -43,6 +45,15 @@ type LoginRequest struct {
 type AuthResponse struct {
 	Token string       `json:"token"`
 	User  *domain.User `json:"user"`
+}
+
+// AppleSignInRequest represents an Apple Sign In request
+type AppleSignInRequest struct {
+	UserID            string                 `json:"userId"`
+	IdentityToken     string                 `json:"identityToken"`
+	AuthorizationCode string                 `json:"authorizationCode"`
+	Email             string                 `json:"email"`
+	FullName          map[string]interface{} `json:"fullName"`
 }
 
 // Register handles POST /api/v1/auth/register
@@ -180,4 +191,122 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, user)
+}
+
+// AppleSignIn handles POST /api/v1/auth/apple
+func (h *AuthHandler) AppleSignIn(w http.ResponseWriter, r *http.Request) {
+	var req AppleSignInRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	// Validate required fields
+	if req.IdentityToken == "" {
+		respondWithError(w, http.StatusBadRequest, "identity token is required")
+		return
+	}
+
+	// For development/testing: Allow mock tokens
+	if req.IdentityToken == "mock-token" || req.IdentityToken == "mock-id-token" {
+		// Create or get user for mock authentication
+		user, err := h.getOrCreateAppleUser(req.UserID, req.Email, req.FullName)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to create user")
+			return
+		}
+
+		// Generate JWT token
+		token, err := h.jwtManager.GenerateToken(user.ID, user.Email)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, AuthResponse{
+			Token: token,
+			User:  user,
+		})
+		return
+	}
+
+	// Production: Verify Apple identity token
+	// Note: You'll need to configure your Apple app's client ID
+	clientID := "com.subspace.app" // TODO: Move to config
+	claims, err := h.appleVerifier.VerifyIdentityToken(req.IdentityToken, clientID)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid Apple identity token")
+		return
+	}
+
+	// Use verified email from token if not provided in request
+	email := req.Email
+	if email == "" {
+		email = claims.Email
+	}
+
+	// Get or create user
+	user, err := h.getOrCreateAppleUser(claims.Sub, email, req.FullName)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create user")
+		return
+	}
+
+	// Generate JWT token
+	token, err := h.jwtManager.GenerateToken(user.ID, user.Email)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, AuthResponse{
+		Token: token,
+		User:  user,
+	})
+}
+
+// getOrCreateAppleUser gets an existing user or creates a new one for Apple Sign In
+func (h *AuthHandler) getOrCreateAppleUser(_, email string, fullName map[string]interface{}) (*domain.User, error) {
+	// Try to find existing user by email
+	existingUser, err := h.userRepo.GetByEmail(email)
+	if err == nil && existingUser != nil {
+		return existingUser, nil
+	}
+
+	// Build user name from fullName
+	name := email // Default to email
+	if fullName != nil {
+		var nameParts []string
+		if givenName, ok := fullName["givenName"].(string); ok && givenName != "" {
+			nameParts = append(nameParts, givenName)
+		}
+		if familyName, ok := fullName["familyName"].(string); ok && familyName != "" {
+			nameParts = append(nameParts, familyName)
+		}
+		if len(nameParts) > 0 {
+			name = nameParts[0]
+			if len(nameParts) > 1 {
+				name = nameParts[0] + " " + nameParts[1]
+			}
+		}
+	}
+
+	// Create new user
+	user := &domain.User{
+		ID:        uuid.New().String(),
+		Name:      name,
+		Email:     email,
+		Password:  "", // No password for OAuth users
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := h.userRepo.Create(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
