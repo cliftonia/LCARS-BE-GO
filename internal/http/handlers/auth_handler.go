@@ -7,6 +7,7 @@ import (
 
 	"github.com/cliftonbaggerman/subspace-backend/internal/auth"
 	"github.com/cliftonbaggerman/subspace-backend/internal/domain"
+	"github.com/cliftonbaggerman/subspace-backend/internal/http/middleware"
 	"github.com/google/uuid"
 )
 
@@ -161,7 +162,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // Me handles GET /api/v1/auth/me
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from context (set by auth middleware)
-	userID := r.Context().Value("userID").(string)
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "User ID not found in context")
+		return
+	}
 
 	user, err := h.userRepo.GetByID(userID)
 	if err != nil {

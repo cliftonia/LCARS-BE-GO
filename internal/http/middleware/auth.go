@@ -8,6 +8,17 @@ import (
 	"github.com/cliftonbaggerman/subspace-backend/internal/auth"
 )
 
+const (
+	userIDKey    contextKey = "userID"
+	userEmailKey contextKey = "userEmail"
+)
+
+// GetUserIDFromContext retrieves the user ID from the request context
+func GetUserIDFromContext(ctx context.Context) (string, bool) {
+	userID, ok := ctx.Value(userIDKey).(string)
+	return userID, ok
+}
+
 // Auth creates an authentication middleware
 func Auth(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -40,8 +51,8 @@ func Auth(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
 			}
 
 			// Add user info to context
-			ctx := context.WithValue(r.Context(), "userID", claims.UserID)
-			ctx = context.WithValue(ctx, "userEmail", claims.Email)
+			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
+			ctx = context.WithValue(ctx, userEmailKey, claims.Email)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

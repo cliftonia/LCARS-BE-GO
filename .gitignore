@@ -38,3 +38,6 @@ CLEANUP_*.md
 REFACTOR_*.md
 *_SUMMARY.md
 *_COMPLETE.md
+server.log
+coverage.out
+coverage.html

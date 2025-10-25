@@ -37,7 +37,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		}
 
 		var response AuthResponse
-		json.NewDecoder(w.Body).Decode(&response)
+		_ = json.NewDecoder(w.Body).Decode(&response)
 
 		if response.Token == "" {
 			t.Error("expected token in response")
@@ -98,7 +98,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		Email:    "login@example.com",
 		Password: hashedPassword,
 	}
-	userRepo.Create(user)
+	_ = userRepo.Create(user)
 
 	t.Run("successful login", func(t *testing.T) {
 		reqBody := LoginRequest{
@@ -118,7 +118,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		}
 
 		var response AuthResponse
-		json.NewDecoder(w.Body).Decode(&response)
+		_ = json.NewDecoder(w.Body).Decode(&response)
 
 		if response.Token == "" {
 			t.Error("expected token in response")
