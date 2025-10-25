@@ -156,7 +156,7 @@ func (r *MessageRepository) GetByUserID(userID string, limit, offset int) ([]*do
 	}
 	defer func() { _ = rows.Close() }()
 
-	var messages []*domain.Message
+	messages := make([]*domain.Message, 0)
 	for rows.Next() {
 		message := &domain.Message{}
 		err := rows.Scan(
@@ -199,7 +199,7 @@ func (r *MessageRepository) List(limit, offset int) ([]*domain.Message, error) {
 	}
 	defer func() { _ = rows.Close() }()
 
-	var messages []*domain.Message
+	messages := make([]*domain.Message, 0)
 	for rows.Next() {
 		message := &domain.Message{}
 		err := rows.Scan(
