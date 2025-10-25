@@ -28,4 +28,9 @@ var (
 	ErrNameTooLong    = errors.New("name exceeds maximum length")
 	ErrEmailTooLong   = errors.New("email exceeds maximum length")
 	ErrContentTooLong = errors.New("content exceeds maximum length")
+
+	// Refresh token errors
+	ErrRefreshTokenNotFound = errors.New("refresh token not found")
+	ErrRefreshTokenExpired  = errors.New("refresh token has expired")
+	ErrRefreshTokenRevoked  = errors.New("refresh token has been revoked")
 )

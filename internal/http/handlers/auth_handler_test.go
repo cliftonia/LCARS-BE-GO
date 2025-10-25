@@ -15,8 +15,9 @@ import (
 
 func TestAuthHandler_Register(t *testing.T) {
 	userRepo := memory.NewUserRepository()
+	refreshTokenRepo := memory.NewRefreshTokenRepository()
 	jwtManager := auth.NewJWTManager("test-secret", 24*time.Hour)
-	handler := NewAuthHandler(userRepo, jwtManager)
+	handler := NewAuthHandler(userRepo, refreshTokenRepo, jwtManager)
 
 	t.Run("successful registration", func(t *testing.T) {
 		reqBody := RegisterRequest{
@@ -39,8 +40,12 @@ func TestAuthHandler_Register(t *testing.T) {
 		var response AuthResponse
 		_ = json.NewDecoder(w.Body).Decode(&response)
 
-		if response.Token == "" {
-			t.Error("expected token in response")
+		if response.AccessToken == "" {
+			t.Error("expected access token in response")
+		}
+
+		if response.RefreshToken == "" {
+			t.Error("expected refresh token in response")
 		}
 
 		if response.User.Email != reqBody.Email {
@@ -87,8 +92,9 @@ func TestAuthHandler_Register(t *testing.T) {
 
 func TestAuthHandler_Login(t *testing.T) {
 	userRepo := memory.NewUserRepository()
+	refreshTokenRepo := memory.NewRefreshTokenRepository()
 	jwtManager := auth.NewJWTManager("test-secret", 24*time.Hour)
-	handler := NewAuthHandler(userRepo, jwtManager)
+	handler := NewAuthHandler(userRepo, refreshTokenRepo, jwtManager)
 
 	// Register a user first
 	hashedPassword, _ := auth.HashPassword("password123")
@@ -120,8 +126,12 @@ func TestAuthHandler_Login(t *testing.T) {
 		var response AuthResponse
 		_ = json.NewDecoder(w.Body).Decode(&response)
 
-		if response.Token == "" {
-			t.Error("expected token in response")
+		if response.AccessToken == "" {
+			t.Error("expected access token in response")
+		}
+
+		if response.RefreshToken == "" {
+			t.Error("expected refresh token in response")
 		}
 	})
 

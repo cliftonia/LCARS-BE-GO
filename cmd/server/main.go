@@ -65,6 +65,7 @@ func main() {
 	// Initialize repositories with PostgreSQL
 	userRepo := postgres.NewUserRepository(db)
 	messageRepo := postgres.NewMessageRepository(db)
+	refreshTokenRepo := postgres.NewRefreshTokenRepository(db)
 
 	// Initialize JWT manager
 	tokenDuration, _ := time.ParseDuration(cfg.Security.JWTExpiration)
@@ -73,7 +74,7 @@ func main() {
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userRepo)
 	messageHandler := handlers.NewMessageHandler(messageRepo)
-	authHandler := handlers.NewAuthHandler(userRepo, jwtManager)
+	authHandler := handlers.NewAuthHandler(userRepo, refreshTokenRepo, jwtManager)
 
 	// Create router
 	router := httpserver.NewRouter(httpserver.RouterConfig{
