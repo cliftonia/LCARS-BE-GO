@@ -3,9 +3,22 @@ version: "2"
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
+  issues-exit-code: 1
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-dirs:
     - vendor
     - bin
+
+  exclude-rules:
+    # Exclude some linters from running on test files
+    - path: _test\.go$
+      linters:
+        - errcheck
+        - gosec
 
 linters:
   enable:
@@ -28,8 +41,8 @@ linters:
 
 formatters:
   enable:
-    - gofmt         # Format code
-    - goimports     # Format imports
+    - gofmt         # Check code formatting
+    - goimports     # Check import formatting
 
 linters-settings:
   errcheck:
@@ -45,15 +58,3 @@ linters-settings:
   gosec:
     excludes:
       - G404  # Use of weak random number generator (math/rand) - OK for non-crypto
-
-issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-  exclude-rules:
-    # Exclude some linters from running on test files
-    - path: _test\.go$
-      linters:
-        - errcheck
-        - gosec
