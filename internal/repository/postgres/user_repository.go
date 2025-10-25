@@ -181,7 +181,7 @@ func (r *UserRepository) List(limit, offset int) ([]*domain.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var users []*domain.User
 	for rows.Next() {

@@ -1,3 +1,4 @@
+// Package handlers provides HTTP request handlers for the Subspace Backend API.
 package handlers
 
 import (
@@ -51,7 +52,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	// Validate input
 	if err := validateUserName(req.Name); err != nil {
@@ -119,7 +122,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	// Validate input
 	if err := validateEmail(req.Email); err != nil {

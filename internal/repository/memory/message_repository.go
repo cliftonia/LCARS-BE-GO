@@ -1,3 +1,4 @@
+// Package memory provides in-memory repository implementations for testing.
 package memory
 
 import (

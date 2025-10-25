@@ -1,3 +1,4 @@
+// Package main is the entry point for the Subspace Backend API server.
 package main
 
 import (
@@ -53,7 +54,11 @@ func main() {
 		log.Error("Failed to connect to database", "error", err)
 		panic(fmt.Sprintf("Failed to connect to database: %v", err))
 	}
-	defer database.Close(db)
+	defer func() {
+		if err := database.Close(db); err != nil {
+			log.Error("Failed to close database connection", "error", err)
+		}
+	}()
 
 	log.Info("Database connection established")
 
@@ -113,7 +118,7 @@ func main() {
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Error("Server forced to shutdown", "error", err)
-		os.Exit(1)
+		return
 	}
 
 	log.Info("Server stopped gracefully")

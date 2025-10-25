@@ -1,7 +1,9 @@
+// Package middleware provides HTTP middleware functions for the Subspace Backend API.
 package middleware
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -42,7 +44,7 @@ func Auth(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
 			// Validate token
 			claims, err := jwtManager.ValidateToken(tokenString)
 			if err != nil {
-				if err == auth.ErrExpiredToken {
+				if errors.Is(err, auth.ErrExpiredToken) {
 					http.Error(w, "Token has expired", http.StatusUnauthorized)
 					return
 				}

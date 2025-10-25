@@ -1,3 +1,4 @@
+// Package http provides HTTP server routing and configuration.
 package http
 
 import (
@@ -85,15 +86,15 @@ func NewRouter(config RouterConfig) http.Handler {
 
 // HealthStatus represents the health status response
 type HealthStatus struct {
-	Status      string            `json:"status"`
-	Service     string            `json:"service"`
-	Timestamp   time.Time         `json:"timestamp"`
-	Checks      map[string]string `json:"checks"`
+	Status    string            `json:"status"`
+	Service   string            `json:"service"`
+	Timestamp time.Time         `json:"timestamp"`
+	Checks    map[string]string `json:"checks"`
 }
 
 // healthCheckHandler returns a health check handler that checks dependencies
 func healthCheckHandler(userRepo domain.UserRepository, messageRepo domain.MessageRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		checks := make(map[string]string)
 		allHealthy := true
 

@@ -1,3 +1,4 @@
+// Package auth provides JWT token generation and validation.
 package auth
 
 import (
@@ -8,7 +9,9 @@ import (
 )
 
 var (
+	// ErrInvalidToken is returned when JWT token validation fails
 	ErrInvalidToken = errors.New("invalid token")
+	// ErrExpiredToken is returned when JWT token has expired
 	ErrExpiredToken = errors.New("token has expired")
 )
 

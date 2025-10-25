@@ -1,3 +1,4 @@
+// Package postgres provides PostgreSQL repository implementations.
 package postgres
 
 import (
@@ -153,7 +154,7 @@ func (r *MessageRepository) GetByUserID(userID string, limit, offset int) ([]*do
 	if err != nil {
 		return nil, fmt.Errorf("failed to list messages by user: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var messages []*domain.Message
 	for rows.Next() {
@@ -196,7 +197,7 @@ func (r *MessageRepository) List(limit, offset int) ([]*domain.Message, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list messages: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var messages []*domain.Message
 	for rows.Next() {

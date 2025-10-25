@@ -7,6 +7,7 @@ import (
 // MessageKind represents the type of message
 type MessageKind string
 
+// MessageKind constants define the types of messages
 const (
 	MessageKindInfo    MessageKind = "info"
 	MessageKindWarning MessageKind = "warning"

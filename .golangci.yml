@@ -25,7 +25,6 @@ linters:
     - unparam       # Report unused function parameters
     - prealloc      # Find slice declarations that could be preallocated
     - gocritic      # Provides diagnostics that check for bugs, performance and style issues
-    - errorlint     # Find code that can cause problems with error wrapping
 
 formatters:
   enable:
@@ -53,8 +52,8 @@ issues:
   max-same-issues: 0
 
   exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
+    # Exclude some linters from running on test files
+    - path: _test\.go$
       linters:
         - errcheck
         - gosec

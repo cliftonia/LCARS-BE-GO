@@ -1,3 +1,4 @@
+// Package domain defines core business entities and repository interfaces.
 package domain
 
 import "errors"
@@ -13,11 +14,11 @@ var (
 	ErrUserEmailRequired = errors.New("user email is required")
 
 	// Message errors
-	ErrMessageNotFound      = errors.New("message not found")
-	ErrInvalidMessageID     = errors.New("invalid message ID")
-	ErrMessageContentEmpty  = errors.New("message content cannot be empty")
-	ErrMessageUserIDEmpty   = errors.New("message user ID cannot be empty")
-	ErrInvalidMessageKind   = errors.New("invalid message kind")
+	ErrMessageNotFound     = errors.New("message not found")
+	ErrInvalidMessageID    = errors.New("invalid message ID")
+	ErrMessageContentEmpty = errors.New("message content cannot be empty")
+	ErrMessageUserIDEmpty  = errors.New("message user ID cannot be empty")
+	ErrInvalidMessageKind  = errors.New("invalid message kind")
 
 	// Pagination errors
 	ErrInvalidLimit  = errors.New("invalid limit: must be between 1 and 100")

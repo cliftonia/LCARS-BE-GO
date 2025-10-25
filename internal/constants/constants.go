@@ -1,3 +1,4 @@
+// Package constants defines application-wide constants.
 package constants
 
 import "time"

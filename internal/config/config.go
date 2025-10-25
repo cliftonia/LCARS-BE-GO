@@ -1,3 +1,4 @@
+// Package config provides configuration management for the Subspace Backend API.
 package config
 
 import (
