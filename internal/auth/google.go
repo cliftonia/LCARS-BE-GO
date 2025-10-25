@@ -31,7 +31,7 @@ type GoogleAuthVerifier struct {
 }
 
 const (
-	//nolint:gosec // This is a public Google API endpoint, not a credential
+	// #nosec G101 -- This is a public Google API endpoint, not a credential
 	googleTokenInfoURL = "https://oauth2.googleapis.com/tokeninfo"
 )
 
