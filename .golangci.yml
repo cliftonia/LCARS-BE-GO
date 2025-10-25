@@ -3,58 +3,31 @@ version: "2"
 run:
   timeout: 5m
   tests: true
-  issues-exit-code: 1
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-dirs:
-    - vendor
-    - bin
-
-  exclude-rules:
-    # Exclude some linters from running on test files
-    - path: _test\.go$
-      linters:
-        - errcheck
-        - gosec
 
 linters:
   enable:
-    - errcheck      # Check for unchecked errors
-    - govet         # Vet examines Go source code
-    - ineffassign   # Detect ineffectual assignments
-    - staticcheck   # Go static analysis
-    - unused        # Check for unused code
-    - misspell      # Check for misspelled words
-    - revive        # Fast, configurable, extensible linter
-    - gosec         # Security-focused linter
-    - bodyclose     # Check HTTP response body is closed
-    - noctx         # Find HTTP requests without context
-    - rowserrcheck  # Check SQL rows.Err is checked
-    - sqlclosecheck # Check SQL resources are closed
-    - unconvert     # Remove unnecessary type conversions
-    - unparam       # Report unused function parameters
-    - prealloc      # Find slice declarations that could be preallocated
-    - gocritic      # Provides diagnostics that check for bugs, performance and style issues
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - gosec
+    - bodyclose
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - prealloc
+    - gocritic
 
 formatters:
   enable:
-    - gofmt         # Check code formatting
-    - goimports     # Check import formatting
-
-linters-settings:
-  errcheck:
-    check-blank: true
-    check-type-assertions: true
-
-  govet:
-    enable-all: true
-
-  revive:
-    confidence: 0.8
-
-  gosec:
-    excludes:
-      - G404  # Use of weak random number generator (math/rand) - OK for non-crypto
+    - gofmt
+    - goimports
