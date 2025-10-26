@@ -26,8 +26,3 @@ linters:
     - unparam
     - prealloc
     - gocritic
-
-formatters:
-  enable:
-    - gofmt
-    - goimports
