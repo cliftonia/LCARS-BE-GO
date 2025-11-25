@@ -158,6 +158,11 @@ func (r *UserRepository) Delete(id string) error {
 	return nil
 }
 
+// Ping checks the health of the repository (always healthy for in-memory)
+func (r *UserRepository) Ping() error {
+	return nil
+}
+
 func stringPtr(s string) *string {
 	return &s
 }

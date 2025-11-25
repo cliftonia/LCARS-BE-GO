@@ -1,0 +1,1008 @@
+openapi: 3.0.3
+info:
+  title: Subspace Backend API
+  description: |
+    RESTful API for the Subspace iOS application - an LCARS-themed Star Trek app.
+
+    ## Authentication
+    Most endpoints require a valid JWT token in the Authorization header:
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    ## Rate Limiting
+    API requests are limited to 100 requests per minute per IP address.
+  version: 1.0.0
+  contact:
+    name: Subspace Team
+    email: support@subspace.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.subspace.dev
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Auth
+    description: Authentication endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Messages
+    description: Message management endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the health status of the API and its dependencies
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: Service is degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Returns Prometheus metrics for monitoring
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Creates a new user account and returns authentication tokens
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      description: Authenticates a user and returns authentication tokens
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/apple:
+    post:
+      tags:
+        - Auth
+      summary: Apple Sign In
+      description: Authenticates a user using Apple Sign In
+      operationId: appleSignIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppleSignInRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid Apple identity token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/google:
+    post:
+      tags:
+        - Auth
+      summary: Google Sign In
+      description: Authenticates a user using Google Sign In
+      operationId: googleSignIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleSignInRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid Google ID token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh tokens
+      description: Exchanges a refresh token for new access and refresh tokens
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Tokens refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current user
+      description: Returns the currently authenticated user's profile
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/users:
+    get:
+      tags:
+        - Users
+      summary: List users
+      description: Returns a paginated list of users
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of users to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Users
+      summary: Create user
+      description: Creates a new user
+      operationId: createUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get user
+      description: Returns a specific user by ID
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Users
+      summary: Update user
+      description: Updates an existing user
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Users
+      summary: Delete user
+      description: Deletes a user by ID
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: User deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/messages:
+    post:
+      tags:
+        - Messages
+      summary: Create message
+      description: Creates a new message
+      operationId: createMessage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMessageRequest'
+      responses:
+        '201':
+          description: Message created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/messages/{id}:
+    get:
+      tags:
+        - Messages
+      summary: Get message
+      description: Returns a specific message by ID
+      operationId: getMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Message ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Message found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Messages
+      summary: Delete message
+      description: Deletes a message by ID
+      operationId: deleteMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Message ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Message deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/messages/{id}/read:
+    patch:
+      tags:
+        - Messages
+      summary: Mark message as read
+      description: Marks a message as read
+      operationId: markMessageAsRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Message ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Message marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/users/{userId}/messages:
+    get:
+      tags:
+        - Messages
+      summary: Get user messages
+      description: Returns a paginated list of messages for a specific user
+      operationId: getUserMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID (UUID)
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Maximum number of messages to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of messages to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/users/{userId}/messages/unread-count:
+    get:
+      tags:
+        - Messages
+      summary: Get unread message count
+      description: Returns the count of unread messages for a specific user
+      operationId: getUnreadCount
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or register endpoints
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Error message
+      required:
+        - error
+        - message
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded]
+          description: Overall health status
+        service:
+          type: string
+          description: Service name
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the health check
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+          description: Individual component health statuses
+      required:
+        - status
+        - service
+        - timestamp
+        - checks
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User ID
+        name:
+          type: string
+          description: User's display name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to user's avatar image
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when user was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when user was last updated
+      required:
+        - id
+        - name
+        - email
+        - createdAt
+        - updatedAt
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Message ID
+        userId:
+          type: string
+          format: uuid
+          description: ID of the user who owns this message
+        content:
+          type: string
+          maxLength: 5000
+          description: Message content
+        kind:
+          type: string
+          enum: [info, warning, error, success]
+          description: Message type/category
+        isRead:
+          type: boolean
+          description: Whether the message has been read
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when message was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when message was last updated
+      required:
+        - id
+        - userId
+        - content
+        - kind
+        - isRead
+        - createdAt
+        - updatedAt
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: User's display name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          minLength: 8
+          description: User's password (minimum 8 characters)
+      required:
+        - name
+        - email
+        - password
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          description: User's password
+      required:
+        - email
+        - password
+
+    AppleSignInRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Apple user identifier
+        identityToken:
+          type: string
+          description: Apple identity token (JWT)
+        authorizationCode:
+          type: string
+          description: Apple authorization code
+        email:
+          type: string
+          format: email
+          description: User's email (may only be provided on first sign in)
+        fullName:
+          type: object
+          properties:
+            givenName:
+              type: string
+            familyName:
+              type: string
+          description: User's full name (may only be provided on first sign in)
+      required:
+        - identityToken
+
+    GoogleSignInRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Google user identifier
+        idToken:
+          type: string
+          description: Google ID token
+        accessToken:
+          type: string
+          description: Google access token
+        email:
+          type: string
+          format: email
+          description: User's email
+        fullName:
+          type: string
+          description: User's full name
+      required:
+        - idToken
+
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token
+      required:
+        - refreshToken
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: Refresh token for obtaining new access tokens
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - accessToken
+        - refreshToken
+        - user
+
+    CreateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: User's display name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          minLength: 8
+          description: User's password
+      required:
+        - name
+        - email
+        - password
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: User's display name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to user's avatar image
+
+    CreateMessageRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: ID of the user who owns this message
+        content:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: Message content
+        kind:
+          type: string
+          enum: [info, warning, error, success]
+          description: Message type/category
+      required:
+        - userId
+        - content
+        - kind
+
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total:
+          type: integer
+          description: Total number of users
+        limit:
+          type: integer
+          description: Number of users per page
+        offset:
+          type: integer
+          description: Current offset
+      required:
+        - users
+        - total
+        - limit
+        - offset
+
+    MessageListResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        total:
+          type: integer
+          description: Total number of messages
+        limit:
+          type: integer
+          description: Number of messages per page
+        offset:
+          type: integer
+          description: Current offset
+      required:
+        - messages
+        - total
+        - limit
+        - offset
+
+    UnreadCountResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Number of unread messages
+      required:
+        - count

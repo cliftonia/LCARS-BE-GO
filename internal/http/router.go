@@ -10,7 +10,9 @@ import (
 	"github.com/cliftonbaggerman/subspace-backend/internal/domain"
 	"github.com/cliftonbaggerman/subspace-backend/internal/http/handlers"
 	"github.com/cliftonbaggerman/subspace-backend/internal/http/middleware"
+	"github.com/cliftonbaggerman/subspace-backend/internal/metrics"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 )
 
@@ -23,6 +25,7 @@ type RouterConfig struct {
 	MessageRepo    domain.MessageRepository
 	JWTManager     *auth.JWTManager
 	CORSOrigins    []string
+	Metrics        *metrics.Metrics
 }
 
 // NewRouter creates a new HTTP router with all routes configured
@@ -35,11 +38,22 @@ func NewRouter(config RouterConfig) http.Handler {
 	r.Use(middleware.Recovery)
 	r.Use(middleware.RateLimit(100, 10)) // 100 requests/minute, burst of 10
 
+	// Apply metrics middleware if metrics are configured
+	if config.Metrics != nil {
+		r.Use(middleware.Metrics(config.Metrics))
+	}
+
 	// API version prefix
 	api := r.PathPrefix("/api/v1").Subrouter()
 
 	// Health check endpoint
 	r.HandleFunc("/health", healthCheckHandler(config.UserRepo, config.MessageRepo)).Methods(http.MethodGet)
+
+	// Metrics endpoint (Prometheus format)
+	r.Handle("/metrics", promhttp.Handler()).Methods(http.MethodGet)
+
+	// OpenAPI documentation endpoint
+	r.HandleFunc("/openapi.yaml", serveOpenAPISpec).Methods(http.MethodGet)
 
 	// Auth routes (public)
 	api.HandleFunc("/auth/register", config.AuthHandler.Register).Methods(http.MethodPost)
@@ -102,7 +116,7 @@ func healthCheckHandler(userRepo domain.UserRepository, messageRepo domain.Messa
 		allHealthy := true
 
 		// Check user repository
-		if _, err := userRepo.Count(); err != nil {
+		if err := userRepo.Ping(); err != nil {
 			checks["user_repository"] = "unhealthy: " + err.Error()
 			allHealthy = false
 		} else {
@@ -110,7 +124,7 @@ func healthCheckHandler(userRepo domain.UserRepository, messageRepo domain.Messa
 		}
 
 		// Check message repository
-		if _, err := messageRepo.GetUnreadCount("health-check"); err != nil {
+		if err := messageRepo.Ping(); err != nil {
 			checks["message_repository"] = "unhealthy: " + err.Error()
 			allHealthy = false
 		} else {
@@ -135,4 +149,10 @@ func healthCheckHandler(userRepo domain.UserRepository, messageRepo domain.Messa
 		w.WriteHeader(statusCode)
 		_ = json.NewEncoder(w).Encode(response)
 	}
+}
+
+// serveOpenAPISpec serves the OpenAPI specification file
+func serveOpenAPISpec(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-yaml")
+	http.ServeFile(w, r, "docs/openapi.yaml")
 }

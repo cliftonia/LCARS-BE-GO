@@ -282,3 +282,11 @@ func (r *MessageRepository) MarkAsRead(id string) error {
 
 	return nil
 }
+
+// Ping checks the health of the database connection
+func (r *MessageRepository) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	return r.db.PingContext(ctx)
+}

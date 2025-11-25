@@ -195,3 +195,8 @@ func (r *MessageRepository) Delete(id string) error {
 	delete(r.messages, id)
 	return nil
 }
+
+// Ping checks the health of the repository (always healthy for in-memory)
+func (r *MessageRepository) Ping() error {
+	return nil
+}

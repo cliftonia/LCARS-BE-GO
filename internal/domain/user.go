@@ -24,4 +24,6 @@ type UserRepository interface {
 	Create(user *User) error
 	Update(user *User) error
 	Delete(id string) error
+	// Ping checks the health of the repository connection
+	Ping() error
 }

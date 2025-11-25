@@ -36,4 +36,6 @@ type MessageRepository interface {
 	Update(message *Message) error
 	MarkAsRead(id string) error
 	Delete(id string) error
+	// Ping checks the health of the repository connection
+	Ping() error
 }

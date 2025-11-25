@@ -17,6 +17,7 @@ import (
 	httpserver "github.com/cliftonbaggerman/subspace-backend/internal/http"
 	"github.com/cliftonbaggerman/subspace-backend/internal/http/handlers"
 	"github.com/cliftonbaggerman/subspace-backend/internal/logger"
+	"github.com/cliftonbaggerman/subspace-backend/internal/metrics"
 	"github.com/cliftonbaggerman/subspace-backend/internal/repository/postgres"
 )
 
@@ -62,6 +63,18 @@ func main() {
 
 	log.Info("Database connection established")
 
+	// Run migrations if AUTO_MIGRATE is enabled
+	if os.Getenv("AUTO_MIGRATE") == "true" {
+		log.Info("Running database migrations...")
+		if err := database.RunMigrationsWithDB(dbConfig, "migrations"); err != nil {
+			log.Error("Failed to run migrations", "error", err)
+			panic(fmt.Sprintf("Failed to run migrations: %v", err))
+		}
+	}
+
+	// Initialize metrics
+	appMetrics := metrics.NewMetrics("subspace")
+
 	// Initialize repositories with PostgreSQL
 	userRepo := postgres.NewUserRepository(db)
 	messageRepo := postgres.NewMessageRepository(db)
@@ -85,6 +98,7 @@ func main() {
 		MessageRepo:    messageRepo,
 		JWTManager:     jwtManager,
 		CORSOrigins:    cfg.CORS.AllowedOrigins,
+		Metrics:        appMetrics,
 	})
 
 	// Create server
