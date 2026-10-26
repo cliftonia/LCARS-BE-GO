@@ -1,11 +1,11 @@
 # Subspace Backend API
 
-A production-ready RESTful API backend built with Go for the Subspace iOS application (LCARS-themed Star Trek interface).
+A RESTful API backend built with Go for the Subspace iOS application (LCARS-themed Star Trek interface).
 
 ## Features
 
 - **Clean Architecture**: Domain-driven design with clear separation of concerns
-- **PostgreSQL Database**: Production-ready database with connection pooling
+- **PostgreSQL Database**: Database with connection pooling
 - **JWT Authentication**: Secure token-based authentication with bcrypt password hashing
 - **Rate Limiting**: Per-IP rate limiting (100 req/min) to prevent API abuse
 - **Request Tracing**: UUID-based request IDs for distributed tracing
@@ -16,22 +16,21 @@ A production-ready RESTful API backend built with Go for the Subspace iOS applic
 - **Docker Support**: Multi-stage builds with Docker Compose for PostgreSQL
 - **CI/CD Pipeline**: GitHub Actions with testing, linting, building, and security scanning
 - **Health Checks**: Database connectivity and service health monitoring
-- **Test Coverage**: 34.3% overall (99.2% on repository layer)
 
-## 📱 Mobile App Integration
+## Mobile App Integration
 
 **For iOS & Android developers:**
 - **[Mobile Integration Guide](./MOBILE_INTEGRATION.md)** - Complete integration guide with code examples
 - **[API Quick Reference](./API_QUICK_REFERENCE.md)** - Quick reference cheat sheet
 
 These guides include:
-- ✅ Complete authentication flow with JWT
-- ✅ iOS (SwiftUI) code examples with async/await
-- ✅ Android (Kotlin/Jetpack Compose) code examples with coroutines
-- ✅ Secure token storage (Keychain/EncryptedSharedPreferences)
-- ✅ Network layer setup (URLSession/Retrofit)
-- ✅ Error handling patterns
-- ✅ Testing on simulators, emulators, and physical devices
+- Complete authentication flow with JWT
+- iOS (SwiftUI) code examples with async/await
+- Android (Kotlin/Jetpack Compose) code examples with coroutines
+- Secure token storage (Keychain/EncryptedSharedPreferences)
+- Network layer setup (URLSession/Retrofit)
+- Error handling patterns
+- Testing on simulators, emulators, and physical devices
 
 ## Tech Stack
 
@@ -324,7 +323,7 @@ air
 
 ## Testing
 
-The project includes comprehensive tests with 34.3% overall coverage:
+Test coverage by layer:
 
 - **Repository Layer**: 99.2% coverage
 - **Handler Layer**: 27% coverage
