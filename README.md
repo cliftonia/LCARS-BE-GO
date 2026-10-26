@@ -581,7 +581,7 @@ For issues and questions:
 - [x] PostgreSQL database integration
 - [x] Authentication & authorization (JWT)
 - [x] Rate limiting
-- [x] Comprehensive test coverage
+- [x] Repository-layer test coverage
 - [x] Structured logging
 - [x] CI/CD pipeline
 - [ ] API documentation (Swagger/OpenAPI)
