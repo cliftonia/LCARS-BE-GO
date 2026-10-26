@@ -1,16 +1,16 @@
-# Subspace Backend API
+# LCARS-BE-GO
 
-A RESTful API backend built with Go for the Subspace iOS application (LCARS-themed Star Trek interface).
+The Go REST API behind [Subspace](https://github.com/cliftonia/Subspace), an LCARS-themed iOS messaging app.
 
 ## Features
 
 - **Clean Architecture**: Domain-driven design with clear separation of concerns
 - **PostgreSQL Database**: Database with connection pooling
-- **JWT Authentication**: Secure token-based authentication with bcrypt password hashing
+- **JWT Authentication**: Token-based authentication with bcrypt password hashing
 - **Rate Limiting**: Per-IP rate limiting (100 req/min) to prevent API abuse
-- **Request Tracing**: UUID-based request IDs for distributed tracing
+- **Request Tracing**: UUID request IDs attached to every log line
 - **Structured Logging**: JSON logging with contextual information using Go's `log/slog`
-- **Input Validation**: Comprehensive validation for all user inputs
+- **Input Validation**: Validation of request bodies (email, password and content length)
 - **CORS Support**: Configurable cross-origin resource sharing
 - **Middleware Stack**: Authentication, logging, recovery, rate limiting, and request ID
 - **Docker Support**: Multi-stage builds with Docker Compose for PostgreSQL
@@ -47,7 +47,7 @@ These guides include:
 ## Project Structure
 
 ```
-subspace-backend/
+LCARS-BE-GO/
 ├── cmd/
 │   └── server/               # Application entry point
 │       └── main.go
@@ -111,7 +111,8 @@ subspace-backend/
 ### 1. Clone the repository
 
 ```bash
-cd subspace-backend
+git clone https://github.com/cliftonia/LCARS-BE-GO.git
+cd LCARS-BE-GO
 ```
 
 ### 2. Set up environment variables
@@ -456,10 +457,9 @@ API rate limiting per IP address:
 ## Monitoring & Observability
 
 - **Structured Logging**: JSON format in production, text in development
-- **Request IDs**: UUID for request tracing across services
+- **Request IDs**: UUID per request, included in logs
 - **Health Endpoints**: Database connectivity checks
 - **HTTP Logging**: Method, path, status, duration, bytes, user agent
-- **Error Tracking**: Detailed error messages with stack traces
 
 ## Production Deployment
 
@@ -513,7 +513,6 @@ Use `/health` for:
 
 ## Performance
 
-- **Response Time**: <10ms average for simple queries
 - **Database Queries**: 3-second timeout prevents hanging
 - **Connection Pool**: Reuses connections efficiently
 - **Memory**: Minimal allocations with proper cleanup
