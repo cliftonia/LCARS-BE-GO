@@ -188,9 +188,9 @@ docker compose logs --tail=100
 
 ## 📱 Next Steps
 
-1. **Mobile Integration**: Check [MOBILE_INTEGRATION.md](./MOBILE_INTEGRATION.md)
-2. **API Reference**: Check [API_QUICK_REFERENCE.md](./API_QUICK_REFERENCE.md)
-3. **Full Documentation**: Check [README.md](./README.md)
+1. **Mobile Integration**: Check [mobile-integration.md](mobile-integration.md)
+2. **API Reference**: Check [api-quick-reference.md](api-quick-reference.md)
+3. **Full Documentation**: Check [README.md](../README.md)
 
 ## 🔒 Note About Test Users
 

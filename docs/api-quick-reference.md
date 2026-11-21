@@ -267,4 +267,4 @@ curl http://localhost:8080/health
 
 ---
 
-**For detailed integration guide, see:** [MOBILE_INTEGRATION.md](./MOBILE_INTEGRATION.md)
+**For detailed integration guide, see:** [mobile-integration.md](mobile-integration.md)

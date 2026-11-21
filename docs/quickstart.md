@@ -191,8 +191,8 @@ The `init.sql` creates these test accounts:
 
 ## 📱 Next Steps
 
-1. **Test the API**: See [API_QUICK_REFERENCE.md](./API_QUICK_REFERENCE.md)
-2. **Mobile Integration**: See [MOBILE_INTEGRATION.md](./MOBILE_INTEGRATION.md)
+1. **Test the API**: See [api-quick-reference.md](api-quick-reference.md)
+2. **Mobile Integration**: See [mobile-integration.md](mobile-integration.md)
 3. **Run Tests**: `go test -v ./...`
 4. **View Coverage**: `make test-coverage && open coverage.html`
 
@@ -220,4 +220,4 @@ open -a Docker && sleep 20 && cp .env.example .env && docker compose up -d && sl
 - **List Users**: `GET /api/v1/users` (requires auth)
 - **Messages**: `GET /api/v1/users/{userId}/messages` (requires auth)
 
-Full documentation: [README.md](./README.md)
+Full documentation: [README.md](../README.md)
